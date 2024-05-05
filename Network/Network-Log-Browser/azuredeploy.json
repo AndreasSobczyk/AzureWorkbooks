@@ -1,0 +1,1288 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "workbookDisplayName": {
+      "type": "string",
+      "defaultValue": "Network Log Browser",
+      "metadata": {
+        "description": "The friendly name for the workbook that is used in the Gallery or Saved List.  This name must be unique within a resource group."
+      }
+    },
+    "workbookType": {
+      "type": "string",
+      "defaultValue": "workbook",
+      "metadata": {
+        "description": "The gallery that the workbook will been shown under. Supported values include workbook, tsg, etc. Usually, this is 'workbook'"
+      }
+    },
+    "workbookSourceId": {
+      "type": "string",
+      "defaultValue": "Azure Monitor",
+      "metadata": {
+        "description": "The id of resource instance to which the workbook will be associated"
+      }
+    },
+    "location": {
+      "type": "string",
+      "defaultValue": "[resourceGroup().location]",
+      "metadata": {
+        "description": "The region the workbook is located in."
+      }
+    }
+  },
+  "variables": {
+    "workbookId": "[guid(concat(resourceGroup().id, parameters('workbookDisplayName')))]",
+    "workbookContent": {
+      "version": "Notebook/1.0",
+      "items": [
+        {
+          "type": 1,
+          "content": {
+            "json": "# Network Traffic Logs"
+          },
+          "name": "text - 12"
+        },
+        {
+          "type": 11,
+          "content": {
+            "version": "LinkItem/1.0",
+            "style": "tabs",
+            "links": [
+              {
+                "id": "5cf4ca3c-6c05-449e-a349-cae3eb53da3c",
+                "cellValue": "TabName",
+                "linkTarget": "parameter",
+                "linkLabel": "Firewall",
+                "subTarget": "Firewall",
+                "style": "link"
+              },
+              {
+                "id": "8702c740-d929-4b2b-ac82-d372a424dbf2",
+                "cellValue": "TabName",
+                "linkTarget": "parameter",
+                "linkLabel": "NSG Flow logs",
+                "subTarget": "NSG",
+                "style": "link"
+              },
+              {
+                "id": "215718fb-5025-4479-9d22-fc78c05989cd",
+                "cellValue": "TabName",
+                "linkTarget": "parameter",
+                "linkLabel": "WAF Logs",
+                "subTarget": "WAF",
+                "style": "link"
+              }
+            ]
+          },
+          "name": "links - 13"
+        },
+        {
+          "type": 9,
+          "content": {
+            "version": "KqlParameterItem/1.0",
+            "crossComponentResources": [
+              "{Workspace}"
+            ],
+            "parameters": [
+              {
+                "id": "c19a6445-c6b0-460a-9513-c1c4076f70c8",
+                "version": "KqlParameterItem/1.0",
+                "name": "DefaultSubscription_Internal",
+                "type": 1,
+                "isRequired": true,
+                "query": "where type =~ 'microsoft.operationalinsights/workspaces'\r\n| where name contains \"core\"\r\n| where name contains \"prd\"\r\n| take 1\r\n| project subscriptionId",
+                "crossComponentResources": [
+                  "value::all"
+                ],
+                "isHiddenWhenLocked": true,
+                "queryType": 1,
+                "resourceType": "microsoft.resourcegraph/resources"
+              },
+              {
+                "id": "b6701101-01e6-4276-99eb-300e9c9938a5",
+                "version": "KqlParameterItem/1.0",
+                "name": "TimeRange",
+                "type": 4,
+                "isRequired": true,
+                "value": {
+                  "durationMs": 86400000
+                },
+                "typeSettings": {
+                  "selectableValues": [
+                    {
+                      "durationMs": 86400000
+                    },
+                    {
+                      "durationMs": 172800000
+                    },
+                    {
+                      "durationMs": 604800000
+                    },
+                    {
+                      "durationMs": 2592000000
+                    },
+                    {
+                      "durationMs": 5184000000
+                    },
+                    {
+                      "durationMs": 7776000000
+                    }
+                  ],
+                  "allowCustom": true
+                }
+              },
+              {
+                "id": "1a3e62eb-d776-4950-8f3b-f2d0521c9a23",
+                "version": "KqlParameterItem/1.0",
+                "name": "Workspace",
+                "type": 5,
+                "isRequired": true,
+                "multiSelect": true,
+                "quote": "'",
+                "delimiter": ",",
+                "query": "where type =~ 'microsoft.operationalinsights/workspaces'\r\n| project id",
+                "crossComponentResources": [
+                  "value::all"
+                ],
+                "typeSettings": {
+                  "resourceTypeFilter": {
+                    "microsoft.operationalinsights/workspaces": true
+                  },
+                  "additionalResourceOptions": [
+                    "value::all"
+                  ],
+                  "showDefault": false
+                },
+                "timeContext": {
+                  "durationMs": 0
+                },
+                "timeContextFromParameter": "TimeRange",
+                "defaultValue": "value::all",
+                "queryType": 1,
+                "resourceType": "microsoft.resourcegraph/resources"
+              },
+              {
+                "id": "61cef697-cc28-462e-a959-37e619fbd4b7",
+                "version": "KqlParameterItem/1.0",
+                "name": "fwLogsExist",
+                "type": 1,
+                "query": "AZFWNetworkRule | limit 1",
+                "crossComponentResources": [
+                  "{Workspace}"
+                ],
+                "isHiddenWhenLocked": true,
+                "timeContext": {
+                  "durationMs": 604800000
+                },
+                "timeContextFromParameter": "TimeRange",
+                "queryType": 0,
+                "resourceType": "microsoft.operationalinsights/workspaces"
+              },
+              {
+                "version": "KqlParameterItem/1.0",
+                "name": "nsgLogsExist",
+                "type": 1,
+                "query": "AzureNetworkAnalytics_CL | where NSGRules_s != \"\" | limit 1",
+                "crossComponentResources": [
+                  "{Workspace}"
+                ],
+                "isHiddenWhenLocked": true,
+                "timeContext": {
+                  "durationMs": 0
+                },
+                "timeContextFromParameter": "TimeRange",
+                "queryType": 0,
+                "resourceType": "microsoft.operationalinsights/workspaces",
+                "id": "5ee70bc7-b3dd-4261-bc6a-ddca3e11e65c"
+              },
+              {
+                "version": "KqlParameterItem/1.0",
+                "name": "appGwWAFLogsExist",
+                "type": 1,
+                "query": "AzureDiagnostics | where ResourceType contains \"APPLICATIONGATEWAYS\" | where Category == \"ApplicationGatewayFirewallLog\" | limit 1",
+                "crossComponentResources": [
+                  "{Workspace}"
+                ],
+                "isHiddenWhenLocked": true,
+                "timeContext": {
+                  "durationMs": 0
+                },
+                "timeContextFromParameter": "TimeRange",
+                "queryType": 0,
+                "resourceType": "microsoft.operationalinsights/workspaces",
+                "id": "aac143f4-8b96-4f95-be47-5bee138e122b"
+              }
+            ],
+            "style": "pills",
+            "queryType": 0,
+            "resourceType": "microsoft.operationalinsights/workspaces"
+          },
+          "name": "parameters - Master"
+        },
+        {
+          "type": 12,
+          "content": {
+            "version": "NotebookGroup/1.0",
+            "groupType": "editable",
+            "items": [
+              {
+                "type": 1,
+                "content": {
+                  "json": "### No Firewall Log available"
+                },
+                "conditionalVisibility": {
+                  "parameterName": "fwLogsExist",
+                  "comparison": "isEqualTo",
+                  "value": ""
+                },
+                "name": "text - 12 - Copy"
+              },
+              {
+                "type": 9,
+                "content": {
+                  "version": "KqlParameterItem/1.0",
+                  "crossComponentResources": [
+                    "{Workspace}"
+                  ],
+                  "parameters": [
+                    {
+                      "id": "82bd2ff2-994a-4136-9fdf-37753f90f388",
+                      "version": "KqlParameterItem/1.0",
+                      "name": "AzFirewalls",
+                      "label": "Azure Firewall",
+                      "type": 5,
+                      "multiSelect": true,
+                      "quote": "'",
+                      "delimiter": ",",
+                      "query": "AZFWNetworkRule\r\n| summarize by _ResourceId",
+                      "crossComponentResources": [
+                        "{Workspace}"
+                      ],
+                      "value": [
+                        "value::all"
+                      ],
+                      "typeSettings": {
+                        "additionalResourceOptions": [
+                          "value::all"
+                        ]
+                      },
+                      "timeContext": {
+                        "durationMs": 0
+                      },
+                      "timeContextFromParameter": "TimeRange",
+                      "defaultValue": "value::all",
+                      "queryType": 0,
+                      "resourceType": "microsoft.operationalinsights/workspaces"
+                    }
+                  ],
+                  "style": "pills",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces"
+                },
+                "name": "parameters - 8"
+              },
+              {
+                "type": 3,
+                "content": {
+                  "version": "KqlItem/1.0",
+                  "query": "AZFWNetworkRule\r\n| where _ResourceId in ({AzFirewalls})\r\n| summarize count() by Action",
+                  "size": 1,
+                  "title": "Firewall - Network Rule Actions",
+                  "timeContextFromParameter": "TimeRange",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "crossComponentResources": [
+                    "{Workspace}"
+                  ],
+                  "visualization": "piechart",
+                  "chartSettings": {
+                    "seriesLabelSettings": [
+                      {
+                        "seriesName": "Allow",
+                        "color": "green"
+                      },
+                      {
+                        "seriesName": "Deny",
+                        "color": "red"
+                      }
+                    ]
+                  }
+                },
+                "customWidth": "33",
+                "conditionalVisibility": {
+                  "parameterName": "fwLogsExist",
+                  "comparison": "isNotEqualTo",
+                  "value": ""
+                },
+                "name": "Firewall - Network Rule Actions",
+                "styleSettings": {
+                  "maxWidth": "33"
+                }
+              },
+              {
+                "type": 3,
+                "content": {
+                  "version": "KqlItem/1.0",
+                  "query": "AZFWNetworkRule\r\n| where _ResourceId in ({AzFirewalls})\r\n| where Action != \"Allow\"\r\n| summarize Count=count() by tostring(DestinationPort) | sort by Count desc",
+                  "size": 1,
+                  "title": "Network Rule - Denied Target Ports",
+                  "timeContextFromParameter": "TimeRange",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "crossComponentResources": [
+                    "{Workspace}"
+                  ],
+                  "visualization": "piechart"
+                },
+                "customWidth": "33",
+                "conditionalVisibility": {
+                  "parameterName": "fwLogsExist",
+                  "comparison": "isNotEqualTo",
+                  "value": ""
+                },
+                "name": "Network Rule - Denied Target Ports",
+                "styleSettings": {
+                  "maxWidth": "33"
+                }
+              },
+              {
+                "type": 3,
+                "content": {
+                  "version": "KqlItem/1.0",
+                  "query": "AZFWApplicationRule\r\n//| where _ResourceId in ({AzFirewalls})\r\n| where Action != \"Allow\"\r\n| summarize Count=count() by Fqdn | sort by Count desc",
+                  "size": 1,
+                  "title": "Firewall - Application Rule Blocked URLs",
+                  "timeContextFromParameter": "TimeRange",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "crossComponentResources": [
+                    "{Workspace}"
+                  ],
+                  "visualization": "piechart"
+                },
+                "customWidth": "33",
+                "conditionalVisibility": {
+                  "parameterName": "fwLogsExist",
+                  "comparison": "isNotEqualTo",
+                  "value": ""
+                },
+                "name": "Firewall - Application Rule Blocked URLs",
+                "styleSettings": {
+                  "maxWidth": "33"
+                }
+              },
+              {
+                "type": 1,
+                "content": {
+                  "json": "### Firewall Log"
+                },
+                "conditionalVisibility": {
+                  "parameterName": "fwLogsExist",
+                  "comparison": "isNotEqualTo",
+                  "value": ""
+                },
+                "name": "text - 12"
+              },
+              {
+                "type": 9,
+                "content": {
+                  "version": "KqlParameterItem/1.0",
+                  "parameters": [
+                    {
+                      "id": "63709c8b-39a8-43af-aa32-ef5ec2907140",
+                      "version": "KqlParameterItem/1.0",
+                      "name": "SourceIP",
+                      "label": "Source IP",
+                      "type": 1,
+                      "timeContext": {
+                        "durationMs": 0
+                      },
+                      "timeContextFromParameter": "TimeRange",
+                      "value": ""
+                    },
+                    {
+                      "id": "f31e0487-817c-41e4-948c-cfcb1765f3ea",
+                      "version": "KqlParameterItem/1.0",
+                      "name": "DestinationIp",
+                      "type": 1,
+                      "value": "",
+                      "timeContext": {
+                        "durationMs": 0
+                      },
+                      "timeContextFromParameter": "TimeRange",
+                      "label": "Destination IP"
+                    },
+                    {
+                      "id": "0d942160-7ba0-426f-a956-7f7aaa20900e",
+                      "version": "KqlParameterItem/1.0",
+                      "name": "FQDN",
+                      "type": 1,
+                      "value": "",
+                      "timeContext": {
+                        "durationMs": 0
+                      },
+                      "timeContextFromParameter": "TimeRange"
+                    },
+                    {
+                      "id": "e3b3349f-2c59-4cca-98be-aa05887346bf",
+                      "version": "KqlParameterItem/1.0",
+                      "name": "DestinationPort",
+                      "label": "Destination Port",
+                      "type": 1,
+                      "timeContext": {
+                        "durationMs": 0
+                      },
+                      "timeContextFromParameter": "TimeRange",
+                      "value": ""
+                    },
+                    {
+                      "id": "6eedff65-f2ed-455e-894a-af0277fdc832",
+                      "version": "KqlParameterItem/1.0",
+                      "name": "Action",
+                      "type": 2,
+                      "value": null,
+                      "typeSettings": {
+                        "additionalResourceOptions": [],
+                        "showDefault": false
+                      },
+                      "jsonData": "[[\r\n    \"Allow\",\r\n    \"Deny\",\r\n    \"Alert\"\r\n]",
+                      "timeContext": {
+                        "durationMs": 0
+                      },
+                      "timeContextFromParameter": "TimeRange"
+                    }
+                  ],
+                  "style": "pills",
+                  "queryType": 0,
+                  "resourceType": "microsoft.insights/components"
+                },
+                "conditionalVisibility": {
+                  "parameterName": "fwLogsExist",
+                  "comparison": "isNotEqualTo",
+                  "value": ""
+                },
+                "name": "Firewall - Filter properties"
+              },
+              {
+                "type": 12,
+                "content": {
+                  "version": "NotebookGroup/1.0",
+                  "groupType": "editable",
+                  "items": [
+                    {
+                      "type": 3,
+                      "content": {
+                        "version": "KqlItem/1.0",
+                        "query": "AZFWNetworkRule\r\n| where _ResourceId in ({AzFirewalls})\r\n| where Action contains \"{Action}\"\r\n| where SourceIp contains \"{SourceIP}\"\r\n| where DestinationIp contains \"{DestinationIp}\"\r\n| where tostring(DestinationPort) contains \"{DestinationPort}\"\r\n| sort by TimeGenerated desc \r\n| project TimeGenerated, SourceIp,SourcePort,DestinationIp,DestinationPort,Protocol, Action, RuleCollectionGroup, RuleCollection, Rule, ActionReason",
+                        "size": 0,
+                        "showAnalytics": true,
+                        "title": "Network rules log",
+                        "timeContextFromParameter": "TimeRange",
+                        "queryType": 0,
+                        "resourceType": "microsoft.operationalinsights/workspaces",
+                        "crossComponentResources": [
+                          "{Workspace}"
+                        ],
+                        "gridSettings": {
+                          "formatters": [
+                            {
+                              "columnMatch": "Action",
+                              "formatter": 18,
+                              "formatOptions": {
+                                "thresholdsOptions": "icons",
+                                "thresholdsGrid": [
+                                  {
+                                    "operator": "==",
+                                    "thresholdValue": "Allow",
+                                    "representation": "Available",
+                                    "text": "{0}{1}"
+                                  },
+                                  {
+                                    "operator": "==",
+                                    "thresholdValue": "Deny",
+                                    "representation": "4",
+                                    "text": "{0}{1}"
+                                  },
+                                  {
+                                    "operator": "Default",
+                                    "thresholdValue": null,
+                                    "representation": "unknown",
+                                    "text": "{0}{1}"
+                                  }
+                                ],
+                                "compositeBarSettings": {
+                                  "labelText": "",
+                                  "columnSettings": [
+                                    {
+                                      "columnName": "Action",
+                                      "color": "blue"
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          ],
+                          "filter": true
+                        }
+                      },
+                      "customWidth": "100",
+                      "conditionalVisibility": {
+                        "parameterName": "TabName",
+                        "comparison": "isEqualTo",
+                        "value": "Firewall"
+                      },
+                      "name": "query - 7",
+                      "styleSettings": {
+                        "maxWidth": "100"
+                      }
+                    },
+                    {
+                      "type": 3,
+                      "content": {
+                        "version": "KqlItem/1.0",
+                        "query": "AZFWApplicationRule\r\n| where _ResourceId in ({AzFirewalls})\r\n| where Action contains \"{Action}\"\r\n| where SourceIp contains \"{SourceIP}\"\r\n| where Fqdn contains \"{FQDN}\"\r\n| where tostring(DestinationPort) contains \"{DestinationPort}\"\r\n| sort by TimeGenerated desc \r\n| project TimeGenerated, SourceIp, SourcePort, Fqdn, DestinationPort, Protocol, Action,RuleCollectionGroup, RuleCollection, Rule, ActionReason, WebCategory, IsTlsInspected, TargetUrl\r\n\r\n",
+                        "size": 0,
+                        "showAnalytics": true,
+                        "title": "Application rules log",
+                        "timeContextFromParameter": "TimeRange",
+                        "queryType": 0,
+                        "resourceType": "microsoft.operationalinsights/workspaces",
+                        "crossComponentResources": [
+                          "{Workspace}"
+                        ],
+                        "gridSettings": {
+                          "formatters": [
+                            {
+                              "columnMatch": "Action",
+                              "formatter": 18,
+                              "formatOptions": {
+                                "thresholdsOptions": "icons",
+                                "thresholdsGrid": [
+                                  {
+                                    "operator": "==",
+                                    "thresholdValue": "Allow",
+                                    "representation": "Available",
+                                    "text": "{0}{1}"
+                                  },
+                                  {
+                                    "operator": "==",
+                                    "thresholdValue": "Deny",
+                                    "representation": "4",
+                                    "text": "{0}{1}"
+                                  },
+                                  {
+                                    "operator": "Default",
+                                    "thresholdValue": null,
+                                    "representation": "unknown",
+                                    "text": "{0}{1}"
+                                  }
+                                ],
+                                "compositeBarSettings": {
+                                  "labelText": "",
+                                  "columnSettings": [
+                                    {
+                                      "columnName": "Action",
+                                      "color": "blue"
+                                    }
+                                  ]
+                                }
+                              }
+                            }
+                          ],
+                          "filter": true
+                        }
+                      },
+                      "customWidth": "100",
+                      "conditionalVisibility": {
+                        "parameterName": "TabName",
+                        "comparison": "isEqualTo",
+                        "value": "Firewall"
+                      },
+                      "name": "query - 7 - Copy",
+                      "styleSettings": {
+                        "maxWidth": "100"
+                      }
+                    }
+                  ]
+                },
+                "customWidth": "70",
+                "conditionalVisibility": {
+                  "parameterName": "fwLogsExist",
+                  "comparison": "isNotEqualTo",
+                  "value": ""
+                },
+                "name": "firewallLogs",
+                "styleSettings": {
+                  "maxWidth": "70"
+                }
+              },
+              {
+                "type": 3,
+                "content": {
+                  "version": "KqlItem/1.0",
+                  "query": "Resources\r\n| where type =~ 'microsoft.network/networkinterfaces'\r\n| extend NSG = properties['networkSecurityGroup']['id']\r\n| parse NSG with \"/subscriptions/\" NetworkSecurityGroup_Sub \"/resourceGroups/\" NetworkSecurityGroup_rg \"/providers/Microsoft.Network/networkSecurityGroups/\" NetworkSecurityGroup_Name\r\n| project id, PrivateIPAddress = tostring(properties['ipConfigurations'][0]['properties']['privateIPAddress']),  PublicIPAddress = tostring(properties['ipConfigurations'][0]['properties']['publicIPAddress']['id']), VirtualMachine = tostring(properties['virtualMachine']['id']), subnet = tostring(properties['ipConfigurations'][0]['properties']['subnet']['id']), NetworkSecurityGroup = NetworkSecurityGroup_Name, properties, subscriptionId, tenantId",
+                  "size": 2,
+                  "title": "VM IPAddress Resource Lookup",
+                  "exportFieldName": "id",
+                  "exportParameterName": "Testid",
+                  "exportDefaultValue": "*",
+                  "queryType": 1,
+                  "resourceType": "microsoft.resourcegraph/resources",
+                  "crossComponentResources": [
+                    "value::selected"
+                  ],
+                  "gridSettings": {
+                    "formatters": [
+                      {
+                        "columnMatch": "properties",
+                        "formatter": 5
+                      }
+                    ],
+                    "filter": true
+                  },
+                  "tileSettings": {
+                    "titleContent": {
+                      "columnMatch": "SourceIP",
+                      "formatter": 4,
+                      "formatOptions": {
+                        "palette": "orange"
+                      },
+                      "numberFormat": {
+                        "unit": 0,
+                        "options": {
+                          "style": "decimal",
+                          "useGrouping": false
+                        }
+                      }
+                    },
+                    "showBorder": true,
+                    "size": "auto"
+                  }
+                },
+                "customWidth": "30",
+                "conditionalVisibility": {
+                  "parameterName": "fwLogsExist",
+                  "comparison": "isNotEqualTo",
+                  "value": ""
+                },
+                "name": "query - 33 - Copy"
+              }
+            ]
+          },
+          "conditionalVisibility": {
+            "parameterName": "TabName",
+            "comparison": "isEqualTo",
+            "value": "Firewall"
+          },
+          "name": "fwGroup"
+        },
+        {
+          "type": 12,
+          "content": {
+            "version": "NotebookGroup/1.0",
+            "groupType": "editable",
+            "items": [
+              {
+                "type": 1,
+                "content": {
+                  "json": "### No NSG Flow Logs available"
+                },
+                "conditionalVisibility": {
+                  "parameterName": "nsgLogsExist",
+                  "comparison": "isEqualTo",
+                  "value": ""
+                },
+                "name": "text - 12 - Copy"
+              },
+              {
+                "type": 3,
+                "content": {
+                  "version": "KqlItem/1.0",
+                  "query": "AzureNetworkAnalytics_CL\r\n| where NSGRules_s != \"\"\r\n| extend NSGRuleActionRaw=split(NSGRules_s,'|',3)[0]| extend NSGRuleName=tostring(split(NSGRules_s,'|',1)[0])\r\n| extend NSGRuleAction=iff(NSGRuleActionRaw=='A', 'Allow','Deny') \r\n| summarize count() by NSGRuleAction",
+                  "size": 1,
+                  "title": "Network Rule - Actions",
+                  "timeContext": {
+                    "durationMs": 86400000
+                  },
+                  "timeContextFromParameter": "TimeRange",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "crossComponentResources": [
+                    "{Workspace}"
+                  ],
+                  "visualization": "piechart"
+                },
+                "customWidth": "33",
+                "conditionalVisibility": {
+                  "parameterName": "nsgLogsExist",
+                  "comparison": "isNotEqualTo",
+                  "value": ""
+                },
+                "name": "NSG - Network Rule Actions",
+                "styleSettings": {
+                  "maxWidth": "33"
+                }
+              },
+              {
+                "type": 3,
+                "content": {
+                  "version": "KqlItem/1.0",
+                  "query": "AzureNetworkAnalytics_CL\r\n| where NSGRules_s != \"\"\r\n| extend NSGRuleActionRaw=split(NSGRules_s,'|',3)[0]| extend NSGRuleName=tostring(split(NSGRules_s,'|',1)[0])\r\n| where NSGRuleActionRaw != 'A'\r\n| extend DestPort_s = split(tostring(DestPort_d), '.')[0]\r\n| summarize count() by tostring(DestPort_s)",
+                  "size": 1,
+                  "title": "Network Rule - Denied Target Ports",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "crossComponentResources": [
+                    "{Workspace}"
+                  ],
+                  "visualization": "piechart"
+                },
+                "customWidth": "33",
+                "conditionalVisibility": {
+                  "parameterName": "nsgLogsExist",
+                  "comparison": "isNotEqualTo",
+                  "value": ""
+                },
+                "name": "Network Rule - Denied Target Ports",
+                "styleSettings": {
+                  "maxWidth": "33"
+                }
+              },
+              {
+                "type": 1,
+                "content": {
+                  "json": "### NSG Flow Logs Filters"
+                },
+                "conditionalVisibility": {
+                  "parameterName": "nsgLogsExist",
+                  "comparison": "isNotEqualTo",
+                  "value": ""
+                },
+                "name": "text - 12"
+              },
+              {
+                "type": 9,
+                "content": {
+                  "version": "KqlParameterItem/1.0",
+                  "crossComponentResources": [
+                    "{Workspace}"
+                  ],
+                  "parameters": [
+                    {
+                      "id": "63709c8b-39a8-43af-aa32-ef5ec2907140",
+                      "version": "KqlParameterItem/1.0",
+                      "name": "nsgSourceIP",
+                      "label": "Source IP",
+                      "type": 1,
+                      "timeContext": {
+                        "durationMs": 0
+                      },
+                      "timeContextFromParameter": "TimeRange",
+                      "value": ""
+                    },
+                    {
+                      "id": "f31e0487-817c-41e4-948c-cfcb1765f3ea",
+                      "version": "KqlParameterItem/1.0",
+                      "name": "nsgTargetIP",
+                      "label": "Target IP",
+                      "type": 1,
+                      "value": "",
+                      "timeContext": {
+                        "durationMs": 0
+                      },
+                      "timeContextFromParameter": "TimeRange"
+                    },
+                    {
+                      "id": "e3b3349f-2c59-4cca-98be-aa05887346bf",
+                      "version": "KqlParameterItem/1.0",
+                      "name": "nsgTargetPort",
+                      "label": "Target Port",
+                      "type": 1,
+                      "timeContext": {
+                        "durationMs": 0
+                      },
+                      "timeContextFromParameter": "TimeRange"
+                    },
+                    {
+                      "id": "6eedff65-f2ed-455e-894a-af0277fdc832",
+                      "version": "KqlParameterItem/1.0",
+                      "name": "nsgAction",
+                      "type": 2,
+                      "query": "AzureNetworkAnalytics_CL\r\n| where NSGRules_s != \"\"\r\n| extend NSGRuleActionRaw=split(NSGRules_s,'|',3)[0]| extend NSGRuleName=tostring(split(NSGRules_s,'|',1)[0])\r\n| extend NSGRuleAction=iff(NSGRuleActionRaw=='A', 'Allow','Deny')\r\n| distinct NSGRuleAction",
+                      "crossComponentResources": [
+                        "{Workspace}"
+                      ],
+                      "value": null,
+                      "typeSettings": {
+                        "additionalResourceOptions": [
+                          "value::1"
+                        ]
+                      },
+                      "timeContext": {
+                        "durationMs": 0
+                      },
+                      "timeContextFromParameter": "TimeRange",
+                      "queryType": 0,
+                      "resourceType": "microsoft.operationalinsights/workspaces",
+                      "label": "Action"
+                    },
+                    {
+                      "id": "6fc65dde-93c3-4a1d-8ef4-23bab356b46f",
+                      "version": "KqlParameterItem/1.0",
+                      "name": "NSGName",
+                      "label": "NSG Name",
+                      "type": 1,
+                      "timeContext": {
+                        "durationMs": 0
+                      },
+                      "timeContextFromParameter": "TimeRange"
+                    },
+                    {
+                      "id": "fbfb3c72-6113-40b7-b1bc-846055f907a9",
+                      "version": "KqlParameterItem/1.0",
+                      "name": "RuleName",
+                      "type": 1,
+                      "timeContext": {
+                        "durationMs": 0
+                      },
+                      "timeContextFromParameter": "TimeRange"
+                    },
+                    {
+                      "id": "b405a2cd-753c-4367-9e7d-428b78932f72",
+                      "version": "KqlParameterItem/1.0",
+                      "name": "RuleType",
+                      "type": 2,
+                      "isRequired": true,
+                      "multiSelect": true,
+                      "quote": "'",
+                      "delimiter": ",",
+                      "query": "AzureNetworkAnalytics_CL\r\n| where NSGRules_s != \"\"\r\n| distinct NSGRuleType_s",
+                      "crossComponentResources": [
+                        "{Workspace}"
+                      ],
+                      "typeSettings": {
+                        "additionalResourceOptions": [
+                          "value::all"
+                        ],
+                        "showDefault": false
+                      },
+                      "timeContext": {
+                        "durationMs": 604800000
+                      },
+                      "timeContextFromParameter": "TimeRange",
+                      "defaultValue": "value::all",
+                      "queryType": 0,
+                      "resourceType": "microsoft.operationalinsights/workspaces"
+                    }
+                  ],
+                  "style": "pills",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces"
+                },
+                "conditionalVisibility": {
+                  "parameterName": "nsgLogsExist",
+                  "comparison": "isNotEqualTo",
+                  "value": ""
+                },
+                "name": "NSG- Filter properties"
+              },
+              {
+                "type": 3,
+                "content": {
+                  "version": "KqlItem/1.0",
+                  "query": "AzureNetworkAnalytics_CL\r\n| where NSGRules_s != \"\"\r\n| extend NSGRuleActionRaw=split(NSGRules_s,'|',3)[0]\r\n| extend NSGRuleName=tostring(split(NSGRules_s,'|',1)[0])\r\n| extend NSGRuleAction=iff(NSGRuleActionRaw=='A', 'Allow','Deny')\r\n| extend L4Protocol=iff(L4Protocol_s=='U', 'UDP',iff(L4Protocol_s=='T', 'TCP',L4Protocol_s))\r\n| extend SrcPublicIPs=split(SrcPublicIPs_s, '|',0) [0]\r\n| extend DestPublicIPs=split(DestPublicIPs_s, '|',0) [0]\r\n| extend localTimestamp = TimeGenerated + 2h\r\n| extend NSGList = split(NSGList_s, '/')[2]\r\n| extend DestPort = tostring(DestPort_d)\r\n| where NSGRuleAction contains \"{nsgAction}\"\r\n| where SrcIP_s contains \"{nsgSourceIP}\"\r\n| where DestIP_s contains \"{nsgTargetIP}\"\r\n| where DestPort contains \"{nsgTargetPort}\"\r\n| where NSGList_s contains \"{NSGName}\"\r\n| where NSGRuleName contains \"{RuleName}\"\r\n| where NSGRuleType_s in ('UserDefined','Default')\r\n| sort by TimeGenerated desc\r\n| project localTimestamp, [\"NSGName\"] = NSGList, [\"RuleName\"] = NSGRuleName, [\"SourceIP\"] = SrcIP_s, [\"SourcePublicIP\"] = SrcPublicIPs, [\"TargetIP\"] = DestIP_s, [\"TargetPublicIP\"] = DestPublicIPs, [\"TargetPort\"] = DestPort_d,  [\"Protocol\"] = L4Protocol,  [\"Action\"] = NSGRuleAction,  L7Protocol_s, [\"RuleType\"] = NSGRuleType_s",
+                  "size": 2,
+                  "showAnalytics": true,
+                  "title": "Network rules log",
+                  "timeContext": {
+                    "durationMs": 86400000
+                  },
+                  "timeContextFromParameter": "TimeRange",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "crossComponentResources": [
+                    "{Workspace}"
+                  ],
+                  "gridSettings": {
+                    "filter": true
+                  }
+                },
+                "customWidth": "70",
+                "conditionalVisibility": {
+                  "parameterName": "nsgLogsExist",
+                  "comparison": "isNotEqualTo",
+                  "value": ""
+                },
+                "name": "NSG Logs",
+                "styleSettings": {
+                  "maxWidth": "70"
+                }
+              },
+              {
+                "type": 3,
+                "content": {
+                  "version": "KqlItem/1.0",
+                  "query": "Resources\r\n| where type =~ 'microsoft.network/networkinterfaces'\r\n| extend NSG = properties['networkSecurityGroup']['id']\r\n| parse NSG with \"/subscriptions/\" NetworkSecurityGroup_Sub \"/resourceGroups/\" NetworkSecurityGroup_rg \"/providers/Microsoft.Network/networkSecurityGroups/\" NetworkSecurityGroup_Name\r\n| project id, PrivateIPAddress = tostring(properties['ipConfigurations'][0]['properties']['privateIPAddress']),  PublicIPAddress = tostring(properties['ipConfigurations'][0]['properties']['publicIPAddress']['id']), VirtualMachine = tostring(properties['virtualMachine']['id']), subnet = tostring(properties['ipConfigurations'][0]['properties']['subnet']['id']), NetworkSecurityGroup = NetworkSecurityGroup_Name, properties, subscriptionId, tenantId",
+                  "size": 2,
+                  "title": "VM IPAddress Resource Lookup",
+                  "exportFieldName": "id",
+                  "exportParameterName": "Testid",
+                  "exportDefaultValue": "*",
+                  "queryType": 1,
+                  "resourceType": "microsoft.resourcegraph/resources",
+                  "crossComponentResources": [
+                    "value::selected"
+                  ],
+                  "gridSettings": {
+                    "formatters": [
+                      {
+                        "columnMatch": "properties",
+                        "formatter": 5
+                      }
+                    ],
+                    "filter": true
+                  },
+                  "tileSettings": {
+                    "titleContent": {
+                      "columnMatch": "SourceIP",
+                      "formatter": 4,
+                      "formatOptions": {
+                        "palette": "orange"
+                      },
+                      "numberFormat": {
+                        "unit": 0,
+                        "options": {
+                          "style": "decimal",
+                          "useGrouping": false
+                        }
+                      }
+                    },
+                    "showBorder": true,
+                    "size": "auto"
+                  }
+                },
+                "customWidth": "30",
+                "conditionalVisibility": {
+                  "parameterName": "nsgLogsExist",
+                  "comparison": "isNotEqualTo",
+                  "value": ""
+                },
+                "name": "query - 33 - 2"
+              }
+            ]
+          },
+          "conditionalVisibility": {
+            "parameterName": "TabName",
+            "comparison": "isEqualTo",
+            "value": "NSG"
+          },
+          "name": "nsgFlowLogs"
+        },
+        {
+          "type": 12,
+          "content": {
+            "version": "NotebookGroup/1.0",
+            "groupType": "editable",
+            "items": [
+              {
+                "type": 1,
+                "content": {
+                  "json": "### No WAF Firewall Logs available"
+                },
+                "conditionalVisibility": {
+                  "parameterName": "appGwWAFLogsExist",
+                  "comparison": "isEqualTo",
+                  "value": ""
+                },
+                "name": "WAF - Text1 - Copy"
+              },
+              {
+                "type": 3,
+                "content": {
+                  "version": "KqlItem/1.0",
+                  "query": "AzureDiagnostics \r\n| where ResourceType contains \"APPLICATIONGATEWAYS\"\r\n| where Category == \"ApplicationGatewayFirewallLog\"\r\n| summarize count() by action_s",
+                  "size": 1,
+                  "title": "WAF Rule - Actions",
+                  "timeContext": {
+                    "durationMs": 0
+                  },
+                  "timeContextFromParameter": "TimeRange",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "crossComponentResources": [
+                    "{Workspace}"
+                  ],
+                  "visualization": "piechart"
+                },
+                "customWidth": "33",
+                "conditionalVisibility": {
+                  "parameterName": "appGwWAFLogsExist",
+                  "comparison": "isNotEqualTo",
+                  "value": ""
+                },
+                "name": "WAF - Rule Actions",
+                "styleSettings": {
+                  "maxWidth": "33"
+                }
+              },
+              {
+                "type": 3,
+                "content": {
+                  "version": "KqlItem/1.0",
+                  "query": "AzureDiagnostics \r\n| where ResourceType contains \"APPLICATIONGATEWAYS\"\r\n| where Category == \"ApplicationGatewayFirewallLog\"\r\n| summarize count() by Message,ruleId_s",
+                  "size": 1,
+                  "title": "WAF Rule - Hits",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "crossComponentResources": [
+                    "{Workspace}"
+                  ],
+                  "visualization": "piechart"
+                },
+                "customWidth": "33",
+                "conditionalVisibility": {
+                  "parameterName": "appGwWAFLogsExist",
+                  "comparison": "isNotEqualTo",
+                  "value": ""
+                },
+                "name": "WAF Rule - Hits",
+                "styleSettings": {
+                  "maxWidth": "33"
+                }
+              },
+              {
+                "type": 3,
+                "content": {
+                  "version": "KqlItem/1.0",
+                  "query": "AzureDiagnostics \r\n| where ResourceType contains \"APPLICATIONGATEWAYS\"\r\n| where Category == \"ApplicationGatewayFirewallLog\"\r\n| extend FullUri = strcat(hostname_s, requestUri_s)\r\n| summarize count() by FullUri",
+                  "size": 1,
+                  "title": "WAF Rule - Hits",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "crossComponentResources": [
+                    "{Workspace}"
+                  ],
+                  "visualization": "piechart"
+                },
+                "customWidth": "33",
+                "conditionalVisibility": {
+                  "parameterName": "appGwWAFLogsExist",
+                  "comparison": "isNotEqualTo",
+                  "value": ""
+                },
+                "name": "WAF Rule - Hits - Copy",
+                "styleSettings": {
+                  "maxWidth": "33"
+                }
+              },
+              {
+                "type": 3,
+                "content": {
+                  "version": "KqlItem/1.0",
+                  "query": "AzureDiagnostics \r\n| where ResourceType contains \"APPLICATIONGATEWAYS\"\r\n| where Category == \"ApplicationGatewayFirewallLog\"\r\n| where action_s == \"Blocked\"\r\n| summarize any(*) by transactionId_g\r\n| summarize count() by bin(any_TimeGenerated, 10m)",
+                  "size": 1,
+                  "title": "Blocked Requests",
+                  "timeContext": {
+                    "durationMs": 0
+                  },
+                  "timeContextFromParameter": "TimeRange",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "crossComponentResources": [
+                    "{Workspace}"
+                  ],
+                  "visualization": "linechart"
+                },
+                "name": "query - 7"
+              },
+              {
+                "type": 1,
+                "content": {
+                  "json": "### WAF Firewall Logs Filters"
+                },
+                "conditionalVisibility": {
+                  "parameterName": "appGwWAFLogsExist",
+                  "comparison": "isNotEqualTo",
+                  "value": ""
+                },
+                "name": "WAF - Text1 - Copy"
+              },
+              {
+                "type": 9,
+                "content": {
+                  "version": "KqlParameterItem/1.0",
+                  "crossComponentResources": [
+                    "{Workspace}"
+                  ],
+                  "parameters": [
+                    {
+                      "id": "63709c8b-39a8-43af-aa32-ef5ec2907140",
+                      "version": "KqlParameterItem/1.0",
+                      "name": "wafClientIp",
+                      "label": "ClientIP",
+                      "type": 1,
+                      "value": "",
+                      "timeContext": {
+                        "durationMs": 604800000
+                      },
+                      "timeContextFromParameter": "TimeRange"
+                    },
+                    {
+                      "id": "f31e0487-817c-41e4-948c-cfcb1765f3ea",
+                      "version": "KqlParameterItem/1.0",
+                      "name": "wafHostname",
+                      "label": "Hostname",
+                      "type": 1,
+                      "value": "",
+                      "timeContext": {
+                        "durationMs": 0
+                      },
+                      "timeContextFromParameter": "TimeRange"
+                    },
+                    {
+                      "id": "e3b3349f-2c59-4cca-98be-aa05887346bf",
+                      "version": "KqlParameterItem/1.0",
+                      "name": "wafTransactionId",
+                      "label": "Transaction Id",
+                      "type": 1,
+                      "timeContext": {
+                        "durationMs": 0
+                      },
+                      "timeContextFromParameter": "TimeRange"
+                    },
+                    {
+                      "id": "6eedff65-f2ed-455e-894a-af0277fdc832",
+                      "version": "KqlParameterItem/1.0",
+                      "name": "wafAction",
+                      "label": "Action",
+                      "type": 2,
+                      "isRequired": true,
+                      "multiSelect": true,
+                      "quote": "'",
+                      "delimiter": ",",
+                      "query": "AzureDiagnostics\r\n| where ResourceType contains \"APPLICATIONGATEWAYS\"\r\n| where Category == \"ApplicationGatewayFirewallLog\"\r\n| sort by TimeGenerated desc\r\n| distinct action_s",
+                      "crossComponentResources": [
+                        "{Workspace}"
+                      ],
+                      "value": [
+                        "value::all"
+                      ],
+                      "typeSettings": {
+                        "additionalResourceOptions": [
+                          "value::all"
+                        ],
+                        "showDefault": false
+                      },
+                      "timeContext": {
+                        "durationMs": 0
+                      },
+                      "timeContextFromParameter": "TimeRange",
+                      "defaultValue": "value::all",
+                      "queryType": 0,
+                      "resourceType": "microsoft.operationalinsights/workspaces"
+                    }
+                  ],
+                  "style": "pills",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces"
+                },
+                "conditionalVisibility": {
+                  "parameterName": "appGwWAFLogsExist",
+                  "comparison": "isNotEqualTo",
+                  "value": ""
+                },
+                "name": "WAF - Filter properties"
+              },
+              {
+                "type": 3,
+                "content": {
+                  "version": "KqlItem/1.0",
+                  "query": "AzureDiagnostics\r\n| where ResourceType contains \"APPLICATIONGATEWAYS\"\r\n| where Category == \"ApplicationGatewayFirewallLog\"\r\n| sort by TimeGenerated desc \r\n| where clientIp_s contains \"{wafClientIp}\"\r\n| where hostname_s contains \"{wafHostname}\"\r\n| where transactionId_g contains \"{wafTransactionId}\"\r\n| where action_s in ({wafAction})\r\n| project TimeGenerated,\r\n[\"ClientIp\"] = clientIp_s,\r\n[\"Hostname\"] = hostname_s,\r\n[\"RequestUri\"] = requestUri_s,\r\n[\"TransactionId\"] = transactionId_g,\r\n[\"Message\"] = Message,\r\n[\"Details\"] = details_message_s,\r\n[\"Action\"] = action_s,\r\n[\"RuleSetType\"] = ruleSetType_s,\r\n[\"RuleSetVersion\"] = ruleSetVersion_s,\r\n[\"RuleId\"] = ruleId_s,\r\nResourceId",
+                  "size": 0,
+                  "showAnalytics": true,
+                  "title": "Network rules log",
+                  "timeContext": {
+                    "durationMs": 0
+                  },
+                  "timeContextFromParameter": "TimeRange",
+                  "exportFieldName": "TransactionId",
+                  "exportParameterName": "wafLogTransactionId",
+                  "exportDefaultValue": "\"",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "crossComponentResources": [
+                    "{Workspace}"
+                  ]
+                },
+                "conditionalVisibility": {
+                  "parameterName": "appGwWAFLogsExist",
+                  "comparison": "isNotEqualTo",
+                  "value": ""
+                },
+                "name": "WAF Logs"
+              },
+              {
+                "type": 3,
+                "content": {
+                  "version": "KqlItem/1.0",
+                  "query": "AzureDiagnostics\r\n| where ResourceType contains \"APPLICATIONGATEWAYS\"\r\n| where Category == \"ApplicationGatewayFirewallLog\"\r\n| sort by TimeGenerated desc \r\n| where transactionId_g contains \"{wafLogTransactionId}\"\r\n| project TimeGenerated,\r\n[\"ClientIp\"] = clientIp_s,\r\n[\"Hostname\"] = hostname_s,\r\n[\"RequestUri\"] = requestUri_s,\r\n[\"TransactionId\"] = transactionId_g,\r\n[\"Message\"] = Message,\r\n[\"Details\"] = details_message_s,\r\n[\"Action\"] = action_s,\r\n[\"RuleSetType\"] = ruleSetType_s,\r\n[\"RuleSetVersion\"] = ruleSetVersion_s,\r\n[\"RuleId\"] = ruleId_s,\r\nResourceId",
+                  "size": 0,
+                  "showAnalytics": true,
+                  "title": "Transaction details",
+                  "timeContext": {
+                    "durationMs": 0
+                  },
+                  "timeContextFromParameter": "TimeRange",
+                  "queryType": 0,
+                  "resourceType": "microsoft.operationalinsights/workspaces",
+                  "crossComponentResources": [
+                    "{Workspace}"
+                  ]
+                },
+                "conditionalVisibility": {
+                  "parameterName": "appGwWAFLogsExist",
+                  "comparison": "isNotEqualTo",
+                  "value": ""
+                },
+                "name": "WAF Logs - Copy"
+              }
+            ]
+          },
+          "conditionalVisibility": {
+            "parameterName": "TabName",
+            "comparison": "isEqualTo",
+            "value": "WAF"
+          },
+          "name": "wafGroup"
+        }
+      ],
+      "fallbackResourceIds": [
+        "azure monitor"
+      ],
+      "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+    }
+  },
+  "resources": [
+    {
+      "type": "microsoft.insights/workbooks",
+      "apiVersion": "2021-03-08",
+      "name": "[variables('workbookId')]",
+      "location": "[parameters('location')]",
+      "kind": "shared",
+      "properties": {
+        "displayName": "[parameters('workbookDisplayName')]",
+        "serializedData": "[string(variables('workbookContent'))]",
+        "version": "1.0",
+        "sourceId": "[parameters('workbookSourceId')]",
+        "category": "[parameters('workbookType')]"
+      }
+    }
+  ],
+  "outputs": {
+    "workbookId": {
+      "type": "string",
+      "value": "[resourceId( 'microsoft.insights/workbooks', variables('workbookId'))]"
+    }
+  }
+}
